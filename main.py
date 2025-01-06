@@ -1,54 +1,47 @@
+from __future__ import annotations
 
-import uvicorn
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+
+from fastapi import FastAPI
+
 app = FastAPI()
 
-books = [
-    {
-        "id" : 1,
-        "title" : "Асинхронность в Python",
-        "author" : "Гуд"
-    },
-    {
-        "id" : 2,
-        "title" : "Богатый папа",
-        "author" : "Роберт"
-    }
-]
+data = {
+    "email": "abc@mail.com",
+    "bio": "Я пирожок вкусный",
+    "age": 12,
 
-@app.get(
-    "/books",
-    tags=["Книги"],
-    summary="Получить все книги"
-)
-def read_books():
-    return books
+}
 
-@app.get("/books/{id}",
-         tags=["Книги"],
-         summary="Получить конкретную книжку"
-         )
-def get_book(book_id: int):
-    for book in books:
-        if book["id"] == book_id:
-            return book
-    raise HTTPException(status_code=404, detail="Книга не найдена")
+data_wo_age = {
+    "email": "abc@mail.com",
+    "bio": "Я пирожок вкусный",
+    # "gender": "male",
+    # "birdthday": "2022"
+}
 
 
-class NewBook(BaseModel):
-    title : str
-    author : str
+class UserSchema(BaseModel):
+    email: EmailStr
+    bio: str | None = Field(max_length=1000)
 
-@app.post("/books",
-          tags=["Книги"],)
-def create_book(new_book: NewBook):
-    books.append({
-        "id" : len(books) + 1,
-        "title" : new_book.title,
-        "author" : new_book.author
-    })
-    return {"success": True, "message": "Книга успешно добавлена"}
+    model_config = ConfigDict(extra='forbid')
 
-if __name__ == '__main__':
-    uvicorn.run('main:app', reload=True)
+users = []
+
+@app.post("/users")
+def add_user(user: UserSchema):
+    users.append(user)
+    return {"ok": True, "msg": "Юзер добавлен"}
+
+
+@app.get("/users")
+def get_user() -> list[UserSchema]:
+    return users
+
+
+# class UserAgeSchema(UserSchema):
+#     age: int = Field(ge=0, le=130)
+
+# print(repr(UserSchema(**data_wo_age)))
+# print(repr(UserAgeSchema(**data)))
